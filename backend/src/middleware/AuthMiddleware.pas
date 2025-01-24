@@ -42,14 +42,12 @@ begin
       // Verificar as credenciais
       if (Username = 'admin') and (Password = 'senha123') then
       begin
-        // Credenciais válidas, prosseguir com a requisição
         Next;
         Exit;
       end;
     end;
   end;
 
-  // Se não for autenticado, retornar erro
   Response.Status(401).Send('Unauthorized');
 end;
 

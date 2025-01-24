@@ -95,7 +95,7 @@ begin
       if Provider <> 'normal' then
       begin
         // Se for um cadastro social, não usamos a senha
-        LocalPassword := '';  // Não é necessário para Google/Facebook
+        LocalPassword := '';
       end
       else
       begin
@@ -155,7 +155,7 @@ begin
       Query.SQL.Text := 'SELECT id, email FROM users ' +
                         'WHERE email = :email AND password = :password';
       Query.ParamByName('email').AsString := Email;
-      Query.ParamByName('password').AsString := SaltPassWord(Senha);
+      Query.ParamByName('password').AsString :=  SaltPassWord(senha);;
     end
     else if (Provider = 'Google') or (Provider = 'Facebook') then
     begin

@@ -12,9 +12,9 @@ object configdm: Tconfigdm
   end
   object FDPhysMySQLDriverLink: TFDPhysMySQLDriverLink
     VendorLib = 
-      'C:\Users\well well\Desktop\Estudo TI\Projetos\AppEx\backend\src\' +
-      'config\libmysql.dll'
-    Left = 264
-    Top = 88
+      'C:\Users\well well\Desktop\Estudo TI\Projetos\AppEx\EXBackEndDel' +
+      'phi\backend\Win32\Debug\lib\libmysql.dll'
+    Left = 248
+    Top = 56
   end
 end

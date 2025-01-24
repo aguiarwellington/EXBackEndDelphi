@@ -48,7 +48,7 @@ begin
 
     ID := Body.GetValue<string>('id', '');
     Email := Body.GetValue<string>('email', '');
-    Senha := Body.GetValue<string>('senha', '');
+    Senha := Body.GetValue<string>('password', '');
     Provider := Body.GetValue<string>('provider', 'normal');
     ProviderID := Body.GetValue<string>('provider_id', '');
 

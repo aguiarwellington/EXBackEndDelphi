@@ -12,9 +12,9 @@ uses
   Horse.CORS,
   FireDAC.DApt,
   FireDAC.Comp.Client,
-  dbConfig in 'src\DbConfig\dbConfig.pas' {configdm: TDataModule},
   uMD5 in 'src\ultils\uMD5.pas',
-  AuthMiddleware in 'src\middleware\AuthMiddleware.pas';
+  AuthMiddleware in 'src\middleware\AuthMiddleware.pas',
+  dbConfig in 'src\model\dbConfig.pas' {configdm: TDataModule};
 
 var
   configdm: Tconfigdm;

@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{06633429-6A20-46EA-98F1-35ED89C3872A}</ProjectGuid>
         <ProjectVersion>20.1</ProjectVersion>
-        <FrameworkType>None</FrameworkType>
+        <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -78,7 +78,7 @@
         <DCC_S>false</DCC_S>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
-        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <SanitizedProjectName>ExApi</SanitizedProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
@@ -209,13 +209,13 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="src\controllers\controllers.Usuarios.pas"/>
-        <DCCReference Include="src\DbConfig\dbConfig.pas">
+        <DCCReference Include="src\ultils\uMD5.pas"/>
+        <DCCReference Include="src\middleware\AuthMiddleware.pas"/>
+        <DCCReference Include="src\model\dbConfig.pas">
             <Form>configdm</Form>
             <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="src\ultils\uMD5.pas"/>
-        <DCCReference Include="src\middleware\AuthMiddleware.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
