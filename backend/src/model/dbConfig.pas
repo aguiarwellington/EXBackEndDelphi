@@ -29,7 +29,10 @@ uses
   FireDAC.DApt.Intf,
   FireDAC.Comp.DataSet,
   FireDAC.VCLUI.Wait,
-  uMd5;
+  uMd5,
+  IdHTTP,
+  IdSSL,
+  IdSSLOpenSSL;
 
 type
   Tconfigdm = class(TDataModule)
@@ -132,18 +135,23 @@ begin
 end;
 
 
-
 function TConfigDM.UsuarioLogin(const ID, Email, Senha, Provider, ProviderID: string): TJSONObject;
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
+  HttpClient: TIdHTTP;
+  GoogleTokenInfo: TStringList;
+  GoogleResponse: string;
 begin
   JsonResponse := TJSONObject.Create;
   Query := TFDQuery.Create(nil);
+  HttpClient := TIdHTTP.Create(nil);
+  GoogleTokenInfo := TStringList.Create;
+
   try
     Query.Connection := conn;
 
-    if (Provider = 'normal') then
+    if Provider = 'normal' then
     begin
       if (Email = '') or (Senha = '') then
       begin
@@ -155,17 +163,42 @@ begin
       Query.SQL.Text := 'SELECT id, email FROM users ' +
                         'WHERE email = :email AND password = :password';
       Query.ParamByName('email').AsString := Email;
-      Query.ParamByName('password').AsString :=  SaltPassWord(senha);;
+      Query.ParamByName('password').AsString := SaltPassWord(Senha);
     end
-    else if (Provider = 'Google') or (Provider = 'Facebook') then
+    else if Provider = 'Google' then
     begin
-      if (ProviderID = '') then
+      if ProviderID = '' then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'ProviderID é obrigatório para login com ' + Provider + '.');
+        JsonResponse.AddPair('message', 'ProviderID é obrigatório para login com Google.');
         Exit(JsonResponse);
       end;
 
+
+      try
+        HttpClient.Request.UserAgent := 'Delphi';
+        GoogleTokenInfo.Add('id_token=' + ProviderID);
+
+        // URL para verificar o token do Google
+        GoogleResponse := HttpClient.Get('https://oauth2.googleapis.com/tokeninfo?id_token=' + ProviderID);
+
+        // Se a resposta contiver os dados esperados, o token é válido
+        if GoogleResponse.Contains('error') then
+        begin
+          JsonResponse.AddPair('status', 'error');
+          JsonResponse.AddPair('message', 'Token do Google inválido.');
+          Exit(JsonResponse);
+        end;
+      except
+        on E: Exception do
+        begin
+          JsonResponse.AddPair('status', 'error');
+          JsonResponse.AddPair('message', 'Erro ao verificar o token do Google: ' + E.Message);
+          Exit(JsonResponse);
+        end;
+      end;
+
+      // Verificar o usuário no banco de dados usando o ProviderID (ID do Google)
       Query.SQL.Text := 'SELECT id, email FROM users ' +
                         'WHERE provider = :provider AND provider_id = :providerID';
       Query.ParamByName('provider').AsString := Provider;
@@ -201,8 +234,12 @@ begin
   end;
 
   Query.Free;
+  HttpClient.Free;
+  GoogleTokenInfo.Free;
+
   Result := JsonResponse;
 end;
+
 
 end.
 

@@ -8,18 +8,99 @@ uses
   System.JSON,
   System.SysUtils,
   FireDAC.DApt,
+  IdHTTP, IdSSL, IdSSLOpenSSL, Classes,
   AuthMiddleware;
 
 procedure RegistrarRotas;
 
 implementation
 
+function GetGoogleIDToken(const Code: string): string;
+var
+  HTTPClient: TIdHTTP;
+  SSLIOHandler: TIdSSLIOHandlerSocketOpenSSL;
+  Params: TStringList;
+  Response: string;
+  JSONResponse: TJSONObject;
+begin
+  Result := '';
+
+  HTTPClient := TIdHTTP.Create(nil);
+  SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+  Params := TStringList.Create;
+
+  HTTPClient.IOHandler := SSLIOHandler;
+  HTTPClient.Request.ContentType := 'application/x-www-form-urlencoded';
+
+  try
+    Params.Add('code=' + Code); // Código de autorização obtido (do Insomnia)
+    Params.Add('client_id=797814134249-m9l4jbqk7vhvdoqg7822jp79vae9itqj.apps.googleusercontent.com'); // Substitua pelo seu Client ID
+    Params.Add('redirect_uri=http://localhost:3000'); // URI de redirecionamento
+    Params.Add('grant_type=authorization_code');  // Tipo de grant
+
+    Response := HTTPClient.Post('https://oauth2.googleapis.com/token', Params);
+
+    JSONResponse := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+    if JSONResponse <> nil then
+    begin
+      try
+        Result := JSONResponse.GetValue<string>('id_token');  // Pega o ID Token da resposta
+      finally
+        JSONResponse.Free;
+      end;
+    end;
+
+  except
+    on E: Exception do
+      raise Exception.Create('Erro ao obter o ID Token: ' + E.Message);
+  end;
+
+  Params.Free;
+  HTTPClient.Free;
+  SSLIOHandler.Free;
+end;
+
+function VerifyGoogleIDToken(const IDToken: string): Boolean;
+var
+  HTTPClient: TIdHTTP;
+  SSLIOHandler: TIdSSLIOHandlerSocketOpenSSL;
+  Params: TStringList;
+  Response: string;
+begin
+  Result := False;
+
+  HTTPClient := TIdHTTP.Create(nil);
+  SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+  Params := TStringList.Create;
+
+  HTTPClient.IOHandler := SSLIOHandler;
+
+  try
+    // Envia o token para validação no Google
+    Params.Add('id_token=' + IDToken);
+    Response := HTTPClient.Post('https://oauth2.googleapis.com/tokeninfo', Params);
+
+    if Response.Contains('email') then
+    begin
+      // Se a resposta contiver o e-mail, o token é válido
+      Result := True;
+    end;
+
+  except
+    on E: Exception do
+      raise Exception.Create('Erro ao validar o ID Token do Google: ' + E.Message);
+  end;
+
+  Params.Free;
+  HTTPClient.Free;
+  SSLIOHandler.Free;
+end;
+
 procedure Login(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
   Dm: TConfigDM;
   Body, JsonResponse: TJSONObject;
-  BodyStr: string;
-  ID, Email, Senha, Provider, ProviderID: string;
+  BodyStr, Provider, ProviderID, Code, ID, Email, Senha: string;
 begin
   try
     BodyStr := Req.Body;
@@ -50,11 +131,34 @@ begin
     Email := Body.GetValue<string>('email', '');
     Senha := Body.GetValue<string>('password', '');
     Provider := Body.GetValue<string>('provider', 'normal');
-    ProviderID := Body.GetValue<string>('provider_id', '');
+    ProviderID := Body.GetValue<string>('provider_id', ''); // id_token do Google
+    Code := Body.GetValue<string>('code', ''); // Código de autorização do Google
+
+    // Se o login for via Google (usando provider=google)
+    if Provider = 'google' then
+    begin
+      // Obter o ID Token do Google com o código de autorização
+      try
+        ProviderID := GetGoogleIDToken(Code); // Atribui o id_token ao ProviderID
+
+        // Verificar se o ID Token é válido
+        if not VerifyGoogleIDToken(ProviderID) then
+        begin
+          Res.Status(THTTPStatus.Unauthorized).Send('ID Token inválido');
+          Exit;
+        end;
+      except
+        on E: Exception do
+        begin
+          Res.Status(THTTPStatus.Unauthorized).Send('Erro ao obter o ID Token: ' + E.Message);
+          Exit;
+        end;
+      end;
+    end;
 
     Dm := TConfigDM.Create(nil);
     try
-      // Chamar o método de autenticação
+      // Chamar o método de autenticação (pode verificar se o provider é Google e usar o id_token)
       JsonResponse := Dm.UsuarioLogin(ID, Email, Senha, Provider, ProviderID);
 
       // Verificar o resultado e retornar ao cliente
@@ -106,7 +210,6 @@ begin
       Exit;
     end;
 
-    // Recuperando os dados do corpo da requisição
     FirstName := body.GetValue<string>('first_name', '');
     LastName := body.GetValue<string>('last_name', '');
     Email := body.GetValue<string>('email', '');
@@ -141,44 +244,11 @@ begin
   end;
 end;
 
-procedure GetUserProfile(Req: THorseRequest; Res: THorseResponse; Next: TProc);
-var
-  JsonResponse: TJSONObject;
-  UserId: string;
-begin
-  try
-    // Recupera o ID do usuário do cabeçalho ou token
-    UserId := Req.Headers['User-ID'];  // Supondo que você use um cabeçalho ou token para isso
-
-    // Aqui você pode pegar as informações do usuário no banco de dados
-    // Exemplo fictício de um retorno de perfil
-    JsonResponse := TJSONObject.Create;
-    JsonResponse.AddPair('id', UserId);
-    JsonResponse.AddPair('first_name', 'John');
-    JsonResponse.AddPair('last_name', 'Doe');
-    JsonResponse.AddPair('email', 'john.doe@example.com');
-
-    Res.Send(JsonResponse).Status(200);
-
-  except
-    on E: Exception do
-    begin
-      Res.Send('Ocorreu um erro: ' + E.Message).Status(500);
-    end;
-  end;
-end;
-
 procedure RegistrarRotas;
 begin
-  // Rota de login
+  THorse.Get('/usuarios/login', Login);
   THorse.Post('/usuarios/login', Login);
-
-  // Rota de cadastro de usuário
   THorse.Post('/usuarios/register', RegisterUser);
-
-  // Rota protegida para consultar o perfil (precisa de autenticação)
-  THorse.Get('/usuarios/profile', GetUserProfile);
-
 end;
 
 end.
