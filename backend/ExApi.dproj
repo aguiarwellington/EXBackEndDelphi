@@ -213,9 +213,9 @@
         <DCCReference Include="src\middleware\AuthMiddleware.pas"/>
         <DCCReference Include="src\model\dbConfig.pas">
             <Form>configdm</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
+        <DCCReference Include="src\ultils\codeGenerate.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

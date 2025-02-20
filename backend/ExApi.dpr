@@ -6,28 +6,37 @@ program ExApi;
 
 uses
   System.SysUtils,
-  controllers.Usuarios in 'src\controllers\controllers.Usuarios.pas',
-  horse,
+  Horse,
   Horse.Jhonson,
   Horse.CORS,
-  FireDAC.DApt,
+  controllers.Usuarios in 'src\controllers\controllers.Usuarios.pas',
   FireDAC.Comp.Client,
   uMD5 in 'src\ultils\uMD5.pas',
   AuthMiddleware in 'src\middleware\AuthMiddleware.pas',
-  dbConfig in 'src\model\dbConfig.pas' {configdm: TDataModule};
+  dbConfig in 'src\model\dbConfig.pas' {configdm: TDataModule},
+  codeGenerate in 'src\ultils\codeGenerate.pas';
 
 var
   configdm: Tconfigdm;
 
 begin
   try
-    Thorse.Use(Jhonson());
-    Thorse.Use(Cors);
+    THorse.Use(Jhonson());
+
+   HorseCORS
+     .AllowedOrigin('*')
+     .AllowedCredentials(true)
+     .AllowedHeaders('*')
+     .AllowedMethods('*')
+     .ExposedHeaders('*');
+
+    THorse.Use(CORS);
 
     controllers.Usuarios.RegistrarRotas;
 
+    //Writeln('Servidor iniciado na porta 3000. Acesse: http://192.168.1.101:3000');
+
     THorse.Listen(3000);
-    Writeln('Servidor iniciado. Pressione Enter para finalizar.');
 
     Readln;
 
