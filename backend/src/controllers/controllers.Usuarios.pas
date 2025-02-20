@@ -11,7 +11,8 @@ uses
   IdHTTP, IdSSL, IdSSLOpenSSL, Classes,
   AuthMiddleware,
   codeGenerate,
-  RESTRequest4D;
+  RESTRequest4D,
+  FireDAC.Comp.Client;
 
 procedure RegistrarRotas;
 
@@ -174,12 +175,12 @@ begin
     Codigo := TcodeGenerate.GerarCodigo; // Gera um código de 6 dígitos
 
     // Salvar no banco
-   { Dm := TConfigDM.Create(nil);
+    Dm := TConfigDM.Create(nil);
     try
-      Dm.SalvarCodigoAutenticacao(UserID, Codigo, IP);
+      Dm.SalvarCodigoAutenticacao(strtoint(UserID), Codigo, IP);
     finally
       Dm.Free;
-    end; }
+    end;
 
 
     JsonRequest := TJSONObject.Create;
@@ -211,6 +212,25 @@ begin
   end;
 end;
 
+procedure VerificarCodigoExistente(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  UserID: string;
+  JsonResponse: TJSONObject;
+  Dm: TConfigDM;
+begin
+  UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
+
+  Dm := TConfigDM.Create(nil);
+  try
+    JsonResponse := Dm.VerificarCodigoExistente(UserID);
+  finally
+    Dm.Free;
+  end;
+
+  Res.Send(JsonResponse.ToString).Status(200);
+
+  JsonResponse.Free;
+end;
 
 procedure RegistrarRotas;
 begin
@@ -218,8 +238,10 @@ begin
   THorse.Post('/usuarios/login', Login);
   THorse.Post('/usuarios/register', RegisterUser);
 
-  //Requisicao de enviar codigo pra API clickSender
+
   THorse.Post('/usuarios/enviarCodigo', EnviarCodigoSMS);
+  THorse.Post('/usuarios/verificar-codigo-existente', VerificarCodigoExistente);
+
 end;
 
 end.

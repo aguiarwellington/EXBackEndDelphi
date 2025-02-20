@@ -45,6 +45,8 @@ type
   public
     function InsertUser(const FirstName, LastName, Email, Password, Provider, ProviderID: string): TJSONObject;
     function UsuarioLogin(const id, Email, Senha, Provider, ProviderID: string): TJSONObject;
+    function SalvarCodigoAutenticacao(const UserID : integer; Codigo, IP: string ) : TJSONObject;
+    function VerificarCodigoExistente(const UserID: string): TJSONObject;
   end;
 
 var
@@ -94,20 +96,14 @@ begin
     try
       Query.Connection := conn;
 
-      // Verifique se o cadastro é via provider social (Google/Facebook)
+      // Verifica se o cadastro é via provider social
       if Provider <> 'normal' then
-      begin
-        // Se for um cadastro social, não usamos a senha
-        LocalPassword := '';
-      end
+        LocalPassword := ''
       else
-      begin
-
         LocalPassword := SaltPassWord(Password);
-      end;
 
       Query.SQL.Text := 'INSERT INTO users (first_name, last_name, email, password, provider, provider_id) ' +
-        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id)';
+                        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id)';
 
       Query.ParamByName('first_name').AsString := FirstName;
       Query.ParamByName('last_name').AsString := LastName;
@@ -134,6 +130,44 @@ begin
   Result := JsonResponse;
 end;
 
+function Tconfigdm.SalvarCodigoAutenticacao(const UserID: integer; Codigo,
+  IP: string): TJSONObject;
+var
+  Query: TFDQuery;
+  JsonResponse: TJSONObject;
+begin
+  JsonResponse := TJSONObject.Create;
+
+  try
+    Query := TFDQuery.Create(nil);
+    try
+      Query.Connection := conn;
+
+      Query.SQL.Text := 'INSERT INTO autenticacao_codigos (user_id, codigo, data_hora, ip_dispositivo) ' +
+                        'VALUES (:user_id, :codigo, :data_hora, :ip_dispositivo)';
+
+      Query.ParamByName('user_id').AsInteger := UserID;
+      Query.ParamByName('codigo').AsString := Codigo;
+      Query.ParamByName('data_hora').AsDateTime := Now;
+      Query.ParamByName('ip_dispositivo').AsString := IP;
+
+      Query.ExecSQL;
+
+      JsonResponse.AddPair('status', 'success');
+      JsonResponse.AddPair('message', 'Código de autenticação salvo com sucesso.');
+    except
+      on E: Exception do
+      begin
+        JsonResponse.AddPair('status', 'error');
+        JsonResponse.AddPair('message', 'Erro ao salvar código: ' + E.Message);
+      end;
+    end;
+  finally
+    Query.Free;
+  end;
+
+  Result := JsonResponse;
+end;
 
 function TConfigDM.UsuarioLogin(const ID, Email, Senha, Provider, ProviderID: string): TJSONObject;
 var
@@ -174,15 +208,12 @@ begin
         Exit(JsonResponse);
       end;
 
-
       try
         HttpClient.Request.UserAgent := 'Delphi';
         GoogleTokenInfo.Add('id_token=' + ProviderID);
 
-        // URL para verificar o token do Google
         GoogleResponse := HttpClient.Get('https://oauth2.googleapis.com/tokeninfo?id_token=' + ProviderID);
 
-        // Se a resposta contiver os dados esperados, o token é válido
         if GoogleResponse.Contains('error') then
         begin
           JsonResponse.AddPair('status', 'error');
@@ -198,7 +229,6 @@ begin
         end;
       end;
 
-      // Verificar o usuário no banco de dados usando o ProviderID (ID do Google)
       Query.SQL.Text := 'SELECT id, email FROM users ' +
                         'WHERE provider = :provider AND provider_id = :providerID';
       Query.ParamByName('provider').AsString := Provider;
@@ -239,6 +269,39 @@ begin
 
   Result := JsonResponse;
 end;
+
+function Tconfigdm.VerificarCodigoExistente(const UserID: string): TJSONObject;
+var
+  Query: TFDQuery;
+  JsonResponse: TJSONObject;
+begin
+  JsonResponse := TJSONObject.Create;
+  Query := TFDQuery.Create(nil);
+
+  if not conn.Connected then
+    conn.Connected := True;
+
+  try
+    Query.Connection := conn;
+    Query.SQL.Text := 'SELECT codigo FROM autenticacao_codigos WHERE user_id = :user_id LIMIT 1';
+    Query.ParamByName('user_id').AsString := UserID;
+    Query.Open;
+
+    if not Query.IsEmpty then
+      JsonResponse.AddPair('status', 'success').AddPair('codigo_existe', 'true')
+    else
+      JsonResponse.AddPair('status', 'success').AddPair('codigo_existe', 'false');
+  except
+    on E: Exception do
+    begin
+      JsonResponse.AddPair('status', 'error');
+      JsonResponse.AddPair('message', 'Erro ao verificar código: ' + E.Message);
+    end;
+  end;
+  Query.Free;
+  Result := JsonResponse;
+end;
+
 
 
 end.
