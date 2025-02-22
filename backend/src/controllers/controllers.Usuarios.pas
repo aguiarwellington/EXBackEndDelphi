@@ -214,23 +214,24 @@ end;
 
 procedure VerificarCodigoExistente(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
-  UserID: string;
+  UserID, CodigoEnviado: string;
   JsonResponse: TJSONObject;
   Dm: TConfigDM;
 begin
   UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
+  CodigoEnviado := Req.Body<TJSONObject>.GetValue<string>('code', '');
 
   Dm := TConfigDM.Create(nil);
   try
-    JsonResponse := Dm.VerificarCodigoExistente(UserID);
+    JsonResponse := Dm.VerificarCodigoExistente(UserID, CodigoEnviado);
   finally
     Dm.Free;
   end;
 
   Res.Send(JsonResponse.ToString).Status(200);
-
   JsonResponse.Free;
 end;
+
 
 procedure RegistrarRotas;
 begin

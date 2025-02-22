@@ -46,7 +46,7 @@ type
     function InsertUser(const FirstName, LastName, Email, Password, Provider, ProviderID: string): TJSONObject;
     function UsuarioLogin(const id, Email, Senha, Provider, ProviderID: string): TJSONObject;
     function SalvarCodigoAutenticacao(const UserID : integer; Codigo, IP: string ) : TJSONObject;
-    function VerificarCodigoExistente(const UserID: string): TJSONObject;
+    function VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
   end;
 
 var
@@ -270,10 +270,11 @@ begin
   Result := JsonResponse;
 end;
 
-function Tconfigdm.VerificarCodigoExistente(const UserID: string): TJSONObject;
+function TConfigDM.VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
+  CodigoSalvo: string;
 begin
   JsonResponse := TJSONObject.Create;
   Query := TFDQuery.Create(nil);
@@ -288,19 +289,37 @@ begin
     Query.Open;
 
     if not Query.IsEmpty then
-      JsonResponse.AddPair('status', 'success').AddPair('codigo_existe', 'true')
+    begin
+      CodigoSalvo := Query.FieldByName('codigo').AsString;
+
+      if CodigoSalvo = CodigoEnviado then
+      begin
+        JsonResponse.AddPair('status', 'success');
+        JsonResponse.AddPair('mensagem', 'Código válido.');
+      end
+      else
+      begin
+        JsonResponse.AddPair('status', 'error');
+        JsonResponse.AddPair('mensagem', 'Código inválido.');
+      end;
+    end
     else
-      JsonResponse.AddPair('status', 'success').AddPair('codigo_existe', 'false');
+    begin
+      JsonResponse.AddPair('status', 'error');
+      JsonResponse.AddPair('mensagem', 'Nenhum código encontrado para o usuário.');
+    end;
   except
     on E: Exception do
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Erro ao verificar código: ' + E.Message);
+      JsonResponse.AddPair('mensagem', 'Erro ao verificar código: ' + E.Message);
     end;
   end;
+
   Query.Free;
   Result := JsonResponse;
 end;
+
 
 
 
