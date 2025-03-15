@@ -14,7 +14,10 @@ uses
   uMD5 in 'src\ultils\uMD5.pas',
   AuthMiddleware in 'src\middleware\AuthMiddleware.pas',
   dbConfig in 'src\model\dbConfig.pas' {configdm: TDataModule},
-  codeGenerate in 'src\ultils\codeGenerate.pas';
+  codeGenerate in 'src\ultils\codeGenerate.pas',
+  MeiController in 'src\controllers\MeiController.pas',
+  ApiCnpjService in 'src\services\ApiCnpjService.pas',
+  ApiCepService in 'src\services\ApiCepService.pas';
 
 var
   configdm: Tconfigdm;
@@ -33,6 +36,7 @@ begin
     THorse.Use(CORS);
 
     controllers.Usuarios.RegistrarRotas;
+    RegistrarMeiRotas;
 
     //Writeln('Servidor iniciado na porta 3000. Acesse: http://192.168.1.101:3000');
 

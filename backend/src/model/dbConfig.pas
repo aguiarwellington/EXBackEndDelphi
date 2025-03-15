@@ -47,12 +47,38 @@ type
     function UsuarioLogin(const id, Email, Senha, Provider, ProviderID: string): TJSONObject;
     function SalvarCodigoAutenticacao(const UserID : integer; Codigo, IP: string ) : TJSONObject;
     function VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
+
+    //meis
+    function InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
+      InscricaoMunicipal, EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade,
+      EnderecoEstado, EnderecoCEP, Email, Telefone: string): TJSONObject;
+
+    function BuscarMei(const UsuarioID: Integer): TFDQuery;
   end;
 
 var
   configdm: Tconfigdm;
 
 implementation
+
+function TConfigDM.BuscarMei(const UsuarioID: Integer): TFDQuery;
+var
+  Query: TFDQuery;
+begin
+  Query := TFDQuery.Create(nil);
+  try
+    Query.Connection := conn;
+    Query.SQL.Text := 'SELECT * FROM meicadastro WHERE id_usuario = :id_usuario';
+    Query.ParamByName('id_usuario').AsInteger := UsuarioID;
+    Query.Open;
+
+    Result := Query; // Retorna o resultado da consulta
+  except
+    Query.Free;
+    raise Exception.Create('Erro ao buscar MEIs.');
+  end;
+end;
+
 
 procedure Tconfigdm.CarregarConfigDB(Connection: TFDConnection);
 begin
@@ -81,6 +107,58 @@ procedure Tconfigdm.DataModuleCreate(Sender: TObject);
 begin
   TDataSetSerializeConfig.GetInstance.CaseNameDefinition := cndLower;
   TDataSetSerializeConfig.GetInstance.Import.DecimalSeparator := '.';
+end;
+
+function TConfigDM.InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
+  InscricaoMunicipal, EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade,
+  EnderecoEstado, EnderecoCEP, Email, Telefone: string): TJSONObject;
+var
+  Query: TFDQuery;
+  JsonResponse: TJSONObject;
+begin
+  JsonResponse := TJSONObject.Create;
+  try
+    Query := TFDQuery.Create(nil);
+    try
+      Query.Connection := conn;
+
+      Query.SQL.Text := 'INSERT INTO meicadastro (id_usuario, cnpj, razao_social, nome_fantasia, inscricao_municipal, ' +
+                        'endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, ' +
+                        'endereco_cep, email, telefone) ' +
+                        'VALUES (:id_usuario, :cnpj, :razao_social, :nome_fantasia, :inscricao_municipal, ' +
+                        ':endereco_rua, :endereco_numero, :endereco_bairro, :endereco_cidade, :endereco_estado, ' +
+                        ':endereco_cep, :email, :telefone)';
+
+      Query.ParamByName('id_usuario').AsInteger := UsuarioID;
+      Query.ParamByName('cnpj').AsString := CNPJ;
+      Query.ParamByName('razao_social').AsString := RazaoSocial;
+      Query.ParamByName('nome_fantasia').AsString := NomeFantasia;
+      Query.ParamByName('inscricao_municipal').AsString := InscricaoMunicipal;
+      Query.ParamByName('endereco_rua').AsString := EnderecoRua;
+      Query.ParamByName('endereco_numero').AsString := EnderecoNumero;
+      Query.ParamByName('endereco_bairro').AsString := EnderecoBairro;
+      Query.ParamByName('endereco_cidade').AsString := EnderecoCidade;
+      Query.ParamByName('endereco_estado').AsString := EnderecoEstado;
+      Query.ParamByName('endereco_cep').AsString := EnderecoCEP;
+      Query.ParamByName('email').AsString := Email;
+      Query.ParamByName('telefone').AsString := Telefone;
+
+      Query.ExecSQL;
+
+      JsonResponse.AddPair('status', 'success');
+      JsonResponse.AddPair('message', 'MEI cadastrado com sucesso.');
+    except
+      on E: Exception do
+      begin
+        JsonResponse.AddPair('status', 'error');
+        JsonResponse.AddPair('message', 'Erro ao cadastrar MEI: ' + E.Message);
+      end;
+    end;
+  finally
+    Query.Free;
+  end;
+
+  Result := JsonResponse;
 end;
 
 function Tconfigdm.InsertUser(const FirstName, LastName, Email, Password,

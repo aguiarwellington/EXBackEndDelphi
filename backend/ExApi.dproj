@@ -216,6 +216,9 @@
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="src\ultils\codeGenerate.pas"/>
+        <DCCReference Include="src\controllers\MeiController.pas"/>
+        <DCCReference Include="src\services\ApiCnpjService.pas"/>
+        <DCCReference Include="src\services\ApiCepService.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
