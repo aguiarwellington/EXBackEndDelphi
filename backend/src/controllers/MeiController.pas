@@ -19,8 +19,8 @@ procedure CadastrarMei(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
   Dm: TConfigDM;
   Body, JsonResponse: TJSONObject;
-  BodyStr, CNPJ, RazaoSocial, NomeFantasia, InscricaoMunicipal, Email, Telefone, EnderecoRua,
-  EnderecoNumero, EnderecoBairro, EnderecoCidade, EnderecoEstado, EnderecoCEP: string;
+  BodyStr, CNPJ, RazaoSocial, NomeFantasia, InscricaoMunicipal, Email, Telefone,
+  EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade, EnderecoEstado, EnderecoCEP: string;
   UsuarioID: Integer;
 begin
   try
@@ -48,17 +48,23 @@ begin
       Exit;
     end;
 
-    UsuarioID := Body.GetValue<Integer>('id_usuario', 0);
+    UsuarioID := Body.GetValue<Integer>('id_usuario', 0); // Obtendo o ID do usuário
+    if UsuarioID = 0 then
+    begin
+      Res.Status(THTTPStatus.BadRequest).Send('ID do usuário é obrigatório');
+      Exit;
+    end;
+
     CNPJ := Body.GetValue<string>('cnpj', '');
     RazaoSocial := Body.GetValue<string>('razao_social', '');
     NomeFantasia := Body.GetValue<string>('nome_fantasia', '');
     InscricaoMunicipal := Body.GetValue<string>('inscricao_municipal', '');
-    EnderecoRua := Body.GetValue<string>('endereco_rua', '');
-    EnderecoNumero := Body.GetValue<string>('endereco_numero', '');
-    EnderecoBairro := Body.GetValue<string>('endereco_bairro', '');
-    EnderecoCidade := Body.GetValue<string>('endereco_cidade', '');
-    EnderecoEstado := Body.GetValue<string>('endereco_estado', '');
-    EnderecoCEP := Body.GetValue<string>('endereco_cep', '');
+    EnderecoRua := Body.GetValue<string>('rua', '');
+    EnderecoNumero := Body.GetValue<string>('numero', '');
+    EnderecoBairro := Body.GetValue<string>('bairro', '');
+    EnderecoCidade := Body.GetValue<string>('cidade', '');
+    EnderecoEstado := Body.GetValue<string>('estado', '');
+    EnderecoCEP := Body.GetValue<string>('cep', '');
     Email := Body.GetValue<string>('email', '');
     Telefone := Body.GetValue<string>('telefone', '');
 
