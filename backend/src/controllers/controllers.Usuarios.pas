@@ -16,7 +16,6 @@ uses
 
 procedure RegistrarRotas;
 
-
 implementation
 
 procedure Login(Req: THorseRequest; Res: THorseResponse; Next: TProc);
@@ -120,11 +119,11 @@ begin
 
     if Provider <> 'normal' then
     begin
-      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, '', Provider, ProviderID);  // Senha não necessária para login social
+      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, '', Provider, ProviderID);
     end
     else
     begin
-      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, Password, 'normal', '');  // Para cadastro normal
+      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, Password, 'normal', '');
     end;
 
     if JsonResponse = nil then
@@ -172,7 +171,7 @@ begin
     IP := Req.RawWebRequest.RemoteAddr;
 
     // Gerar código
-    Codigo := TcodeGenerate.GerarCodigo; // Gera um código de 6 dígitos
+    Codigo := TcodeGenerate.GerarCodigo;
 
     // Salvar no banco
     Dm := TConfigDM.Create(nil);
@@ -181,7 +180,6 @@ begin
     finally
       Dm.Free;
     end;
-
 
     JsonRequest := TJSONObject.Create;
     JsonRequest.AddPair('messages', TJSONArray.Create(
@@ -219,7 +217,8 @@ var
   Dm: TConfigDM;
 begin
   UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
-  CodigoEnviado := Req.Body<TJSONObject>.GetValue<string>('code', '');
+
+  Req.Body<TJSONObject>.TryGetValue<string>('code', CodigoEnviado);
 
   Dm := TConfigDM.Create(nil);
   try
@@ -239,9 +238,9 @@ begin
   THorse.Post('/usuarios/login', Login);
   THorse.Post('/usuarios/register', RegisterUser);
 
-
   THorse.Post('/usuarios/enviarCodigo', EnviarCodigoSMS);
   THorse.Post('/usuarios/verificar-codigo-existente', VerificarCodigoExistente);
+
 
 end;
 

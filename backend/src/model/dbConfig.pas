@@ -32,7 +32,8 @@ uses
   uMd5,
   IdHTTP,
   IdSSL,
-  IdSSLOpenSSL;
+  IdSSLOpenSSL,
+  System.StrUtils;
 
 type
   Tconfigdm = class(TDataModule)
@@ -115,51 +116,72 @@ function TConfigDM.InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, 
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
+  JaExiste: Boolean;
 begin
   JsonResponse := TJSONObject.Create;
+  Query := TFDQuery.Create(nil);
   try
-    Query := TFDQuery.Create(nil);
-    try
-      Query.Connection := conn;
+    Query.Connection := conn;
 
-      Query.SQL.Text := 'INSERT INTO meicadastro (id_usuario, cnpj, razao_social, nome_fantasia, inscricao_municipal, ' +
-                        'endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, ' +
-                        'endereco_cep, email, telefone) ' +
-                        'VALUES (:id_usuario, :cnpj, :razao_social, :nome_fantasia, :inscricao_municipal, ' +
-                        ':endereco_rua, :endereco_numero, :endereco_bairro, :endereco_cidade, :endereco_estado, ' +
-                        ':endereco_cep, :email, :telefone)';
+    // Verificar se já existe registro para o usuário
+    Query.SQL.Text := 'SELECT COUNT(*) FROM meicadastro WHERE id_usuario = :id_usuario';
+    Query.ParamByName('id_usuario').AsInteger := UsuarioID;
+    Query.Open;
+    JaExiste := Query.Fields[0].AsInteger > 0;
+    Query.Close;
 
-      Query.ParamByName('id_usuario').AsInteger := UsuarioID;
-      Query.ParamByName('cnpj').AsString := CNPJ;
-      Query.ParamByName('razao_social').AsString := RazaoSocial;
-      Query.ParamByName('nome_fantasia').AsString := NomeFantasia;
-      Query.ParamByName('inscricao_municipal').AsString := InscricaoMunicipal;
-      Query.ParamByName('endereco_rua').AsString := EnderecoRua;
-      Query.ParamByName('endereco_numero').AsString := EnderecoNumero;
-      Query.ParamByName('endereco_bairro').AsString := EnderecoBairro;
-      Query.ParamByName('endereco_cidade').AsString := EnderecoCidade;
-      Query.ParamByName('endereco_estado').AsString := EnderecoEstado;
-      Query.ParamByName('endereco_cep').AsString := EnderecoCEP;
-      Query.ParamByName('email').AsString := Email;
-      Query.ParamByName('telefone').AsString := Telefone;
-
-      Query.ExecSQL;
-
-      JsonResponse.AddPair('status', 'success');
-      JsonResponse.AddPair('message', 'MEI cadastrado com sucesso.');
-    except
-      on E: Exception do
-      begin
-        JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Erro ao cadastrar MEI: ' + E.Message);
-      end;
+    if JaExiste then
+    begin
+      Query.SQL.Text :=
+        'UPDATE meicadastro SET ' +
+        'cnpj = :cnpj, razao_social = :razao_social, nome_fantasia = :nome_fantasia, ' +
+        'inscricao_municipal = :inscricao_municipal, endereco_rua = :endereco_rua, ' +
+        'endereco_numero = :endereco_numero, endereco_bairro = :endereco_bairro, ' +
+        'endereco_cidade = :endereco_cidade, endereco_estado = :endereco_estado, ' +
+        'endereco_cep = :endereco_cep, email = :email, telefone = :telefone ' +
+        'WHERE id_usuario = :id_usuario';
+    end
+    else
+    begin
+      Query.SQL.Text :=
+        'INSERT INTO meicadastro (id_usuario, cnpj, razao_social, nome_fantasia, inscricao_municipal, ' +
+        'endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, ' +
+        'endereco_cep, email, telefone) ' +
+        'VALUES (:id_usuario, :cnpj, :razao_social, :nome_fantasia, :inscricao_municipal, ' +
+        ':endereco_rua, :endereco_numero, :endereco_bairro, :endereco_cidade, :endereco_estado, ' +
+        ':endereco_cep, :email, :telefone)';
     end;
-  finally
-    Query.Free;
-  end;
 
+    // Parâmetros comuns
+    Query.ParamByName('id_usuario').AsInteger := UsuarioID;
+    Query.ParamByName('cnpj').AsString := CNPJ;
+    Query.ParamByName('razao_social').AsString := RazaoSocial;
+    Query.ParamByName('nome_fantasia').AsString := NomeFantasia;
+    Query.ParamByName('inscricao_municipal').AsString := InscricaoMunicipal;
+    Query.ParamByName('endereco_rua').AsString := EnderecoRua;
+    Query.ParamByName('endereco_numero').AsString := EnderecoNumero;
+    Query.ParamByName('endereco_bairro').AsString := EnderecoBairro;
+    Query.ParamByName('endereco_cidade').AsString := EnderecoCidade;
+    Query.ParamByName('endereco_estado').AsString := EnderecoEstado;
+    Query.ParamByName('endereco_cep').AsString := EnderecoCEP;
+    Query.ParamByName('email').AsString := Email;
+    Query.ParamByName('telefone').AsString := Telefone;
+
+    Query.ExecSQL;
+
+    JsonResponse.AddPair('status', 'success');
+    JsonResponse.AddPair('message', IfThen(JaExiste, 'MEI atualizado com sucesso.', 'MEI cadastrado com sucesso.'));
+  except
+    on E: Exception do
+    begin
+      JsonResponse.AddPair('status', 'error');
+      JsonResponse.AddPair('message', 'Erro ao salvar MEI: ' + E.Message);
+    end;
+  end;
+  Query.Free;
   Result := JsonResponse;
 end;
+
 
 
 function Tconfigdm.InsertUser(const FirstName, LastName, Email, Password,
@@ -371,21 +393,28 @@ begin
     begin
       CodigoSalvo := Query.FieldByName('codigo').AsString;
 
-      if CodigoSalvo = CodigoEnviado then
+      if CodigoEnviado = '' then
       begin
-        JsonResponse.AddPair('status', 'success');
-        JsonResponse.AddPair('mensagem', 'Código válido.');
+        JsonResponse.AddPair('codigo_existe', TJSONBool.Create(True));
+        JsonResponse.AddPair('codigo_salvo', CodigoSalvo);
       end
       else
       begin
-        JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('mensagem', 'Código inválido.');
+        if CodigoSalvo = CodigoEnviado then
+        begin
+          JsonResponse.AddPair('status', 'success');
+          JsonResponse.AddPair('mensagem', 'Código válido.');
+        end
+        else
+        begin
+          JsonResponse.AddPair('status', 'error');
+          JsonResponse.AddPair('mensagem', 'Código inválido.');
+        end;
       end;
     end
     else
     begin
-      JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('mensagem', 'Nenhum código encontrado para o usuário.');
+      JsonResponse.AddPair('codigo_existe', TJSONBool.Create(False));
     end;
   except
     on E: Exception do
@@ -398,6 +427,7 @@ begin
   Query.Free;
   Result := JsonResponse;
 end;
+
 
 
 

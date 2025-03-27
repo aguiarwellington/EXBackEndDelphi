@@ -48,7 +48,7 @@ begin
       Exit;
     end;
 
-    UsuarioID := Body.GetValue<Integer>('id_usuario', 0); // Obtendo o ID do usuário
+    UsuarioID := Body.GetValue<Integer>('id_usuario', 0);
     if UsuarioID = 0 then
     begin
       Res.Status(THTTPStatus.BadRequest).Send('ID do usuário é obrigatório');
@@ -121,11 +121,13 @@ begin
         JsonMei.AddPair('nome_fantasia', Query.FieldByName('nome_fantasia').AsString);
         JsonMei.AddPair('email', Query.FieldByName('email').AsString);
         JsonMei.AddPair('telefone', Query.FieldByName('telefone').AsString);
-        JsonMei.AddPair('endereco', Query.FieldByName('endereco_rua').AsString + ', ' +
-          Query.FieldByName('endereco_numero').AsString + ', ' +
-          Query.FieldByName('endereco_bairro').AsString + ', ' +
-          Query.FieldByName('endereco_cidade').AsString + ', ' +
-          Query.FieldByName('endereco_estado').AsString);
+        JsonMei.AddPair('endereco_rua', Query.FieldByName('endereco_rua').AsString);
+        JsonMei.AddPair('endereco_numero', Query.FieldByName('endereco_numero').AsString);
+        JsonMei.AddPair('endereco_bairro', Query.FieldByName('endereco_bairro').AsString);
+        JsonMei.AddPair('endereco_cidade', Query.FieldByName('endereco_cidade').AsString);
+        JsonMei.AddPair('endereco_estado', Query.FieldByName('endereco_estado').AsString);
+        JsonMei.AddPair('endereco_cep', Query.FieldByName('endereco_cep').AsString);
+
 
         JsonArray.AddElement(JsonMei);
         Query.Next;
