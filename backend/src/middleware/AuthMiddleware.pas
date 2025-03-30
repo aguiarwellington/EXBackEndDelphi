@@ -1,4 +1,4 @@
-unit AuthMiddleware;
+unit authMiddleware;
 
 interface
 

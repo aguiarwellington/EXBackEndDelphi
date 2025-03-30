@@ -208,17 +208,17 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="src\controllers\controllers.Usuarios.pas"/>
         <DCCReference Include="src\ultils\uMD5.pas"/>
-        <DCCReference Include="src\middleware\AuthMiddleware.pas"/>
         <DCCReference Include="src\model\dbConfig.pas">
             <Form>configdm</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="src\ultils\codeGenerate.pas"/>
-        <DCCReference Include="src\controllers\MeiController.pas"/>
-        <DCCReference Include="src\services\ApiCnpjService.pas"/>
-        <DCCReference Include="src\services\ApiCepService.pas"/>
+        <DCCReference Include="src\services\apiCepService.pas"/>
+        <DCCReference Include="src\services\apiCnpjService.pas"/>
+        <DCCReference Include="src\middleware\authMiddleware.pas"/>
+        <DCCReference Include="src\controllers\meiController.pas"/>
+        <DCCReference Include="src\controllers\usuariosController.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
