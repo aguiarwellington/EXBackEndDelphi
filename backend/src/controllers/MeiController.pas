@@ -19,7 +19,7 @@ procedure CadastrarMei(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
   Dm: TConfigDM;
   Body, JsonResponse: TJSONObject;
-  BodyStr, CNPJ, RazaoSocial, NomeFantasia, InscricaoMunicipal, Email, Telefone,
+  BodyStr, CNPJ, RazaoSocial, NomeFantasia, InscricaoMunicipal, Email, Telefone, Foto,
   EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade, EnderecoEstado, EnderecoCEP: string;
   UsuarioID: Integer;
 begin
@@ -67,11 +67,13 @@ begin
     EnderecoCEP := Body.GetValue<string>('cep', '');
     Email := Body.GetValue<string>('email', '');
     Telefone := Body.GetValue<string>('telefone', '');
+    Foto := Body.GetValue<string>('foto', '');
 
     Dm := TConfigDM.Create(nil);
     try
       JsonResponse := Dm.InsertMei(UsuarioID, CNPJ, RazaoSocial, NomeFantasia, InscricaoMunicipal,
-        EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade, EnderecoEstado, EnderecoCEP, Email, Telefone);
+        EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade, EnderecoEstado,
+        EnderecoCEP, Email, Telefone, Foto);
 
       if JsonResponse = nil then
         Res.Status(THTTPStatus.BadRequest).Send('Erro ao cadastrar MEI')
@@ -89,6 +91,7 @@ begin
     end;
   end;
 end;
+
 
 procedure BuscarMei(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
@@ -127,11 +130,12 @@ begin
         JsonMei.AddPair('endereco_cidade', Query.FieldByName('endereco_cidade').AsString);
         JsonMei.AddPair('endereco_estado', Query.FieldByName('endereco_estado').AsString);
         JsonMei.AddPair('endereco_cep', Query.FieldByName('endereco_cep').AsString);
-
+        JsonMei.AddPair('foto', Query.FieldByName('foto').AsString); // <- aqui
 
         JsonArray.AddElement(JsonMei);
         Query.Next;
       end;
+
 
       Res.Send<TJSONArray>(JsonArray).Status(200);
     finally

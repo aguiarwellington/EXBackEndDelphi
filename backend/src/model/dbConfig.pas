@@ -50,9 +50,9 @@ type
     function VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
 
     //meis
-    function InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
-      InscricaoMunicipal, EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade,
-      EnderecoEstado, EnderecoCEP, Email, Telefone: string): TJSONObject;
+  function InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
+                    InscricaoMunicipal, EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade,
+                    EnderecoEstado, EnderecoCEP, Email, Telefone, Foto: string): TJSONObject;
 
     function BuscarMei(const UsuarioID: Integer): TFDQuery;
   end;
@@ -112,7 +112,7 @@ end;
 
 function TConfigDM.InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
   InscricaoMunicipal, EnderecoRua, EnderecoNumero, EnderecoBairro, EnderecoCidade,
-  EnderecoEstado, EnderecoCEP, Email, Telefone: string): TJSONObject;
+  EnderecoEstado, EnderecoCEP, Email, Telefone, Foto: string): TJSONObject;
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
@@ -138,7 +138,7 @@ begin
         'inscricao_municipal = :inscricao_municipal, endereco_rua = :endereco_rua, ' +
         'endereco_numero = :endereco_numero, endereco_bairro = :endereco_bairro, ' +
         'endereco_cidade = :endereco_cidade, endereco_estado = :endereco_estado, ' +
-        'endereco_cep = :endereco_cep, email = :email, telefone = :telefone ' +
+        'endereco_cep = :endereco_cep, email = :email, telefone = :telefone, foto = :foto ' +
         'WHERE id_usuario = :id_usuario';
     end
     else
@@ -146,10 +146,10 @@ begin
       Query.SQL.Text :=
         'INSERT INTO meicadastro (id_usuario, cnpj, razao_social, nome_fantasia, inscricao_municipal, ' +
         'endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, ' +
-        'endereco_cep, email, telefone) ' +
+        'endereco_cep, email, telefone, foto) ' +
         'VALUES (:id_usuario, :cnpj, :razao_social, :nome_fantasia, :inscricao_municipal, ' +
         ':endereco_rua, :endereco_numero, :endereco_bairro, :endereco_cidade, :endereco_estado, ' +
-        ':endereco_cep, :email, :telefone)';
+        ':endereco_cep, :email, :telefone, :foto)';
     end;
 
     // Parâmetros comuns
@@ -167,6 +167,14 @@ begin
     Query.ParamByName('email').AsString := Email;
     Query.ParamByName('telefone').AsString := Telefone;
 
+    // Definindo o tipo e tamanho do campo foto corretamente
+    with Query.ParamByName('foto') do
+    begin
+      DataType := ftMemo;
+      Size := Length(Foto); // ou um valor fixo como 200000
+      AsString := Foto;
+    end;
+
     Query.ExecSQL;
 
     JsonResponse.AddPair('status', 'success');
@@ -181,6 +189,8 @@ begin
   Query.Free;
   Result := JsonResponse;
 end;
+
+
 
 
 
