@@ -231,12 +231,43 @@ begin
   JsonResponse.Free;
 end;
 
+procedure ValidarSessao(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  UserID: string;
+  Query: TFDQuery;
+  Dm: TConfigDM;
+  jsonResp: TJSONObject;
+begin
+  UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
+
+  Dm := TConfigDM.Create(nil);
+  Query := TFDQuery.Create(nil);
+  jsonResp := TJSONObject.Create;
+  try
+    Query.Connection := Dm.conn;
+    Query.SQL.Text := 'SELECT id FROM users WHERE id = :id';
+    Query.ParamByName('id').AsString := UserID;
+    Query.Open;
+
+    if not Query.IsEmpty then
+      jsonResp.AddPair('sessao_valida', TJSONBool.Create(True))
+    else
+      jsonResp.AddPair('sessao_valida', TJSONBool.Create(False));
+
+    Res.Send(jsonResp).Status(200);
+  finally
+    Query.Free;
+    Dm.Free;
+  end;
+end;
+
 
 procedure RegistrarRotas;
 begin
   THorse.Get('/usuarios/login', Login);
   THorse.Post('/usuarios/login', Login);
   THorse.Post('/usuarios/register', RegisterUser);
+  THorse.Post('/usuarios/validar-sessao', ValidarSessao);
 
   THorse.Post('/usuarios/enviarCodigo', EnviarCodigoSMS);
   THorse.Post('/usuarios/verificar-codigo-existente', VerificarCodigoExistente);

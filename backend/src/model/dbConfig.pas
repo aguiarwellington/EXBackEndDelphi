@@ -191,11 +191,7 @@ begin
 end;
 
 
-
-
-
-function Tconfigdm.InsertUser(const FirstName, LastName, Email, Password,
-  Provider, ProviderID: string): TJSONObject;
+function TConfigDM.InsertUser(const FirstName, LastName, Email, Password, Provider, ProviderID: string): TJSONObject;
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
@@ -207,14 +203,13 @@ begin
     try
       Query.Connection := conn;
 
-      // Verifica se o cadastro é via provider social
       if Provider <> 'normal' then
         LocalPassword := ''
       else
         LocalPassword := SaltPassWord(Password);
 
-      Query.SQL.Text := 'INSERT INTO users (first_name, last_name, email, password, provider, provider_id) ' +
-                        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id)';
+      Query.SQL.Text := 'INSERT INTO users (first_name, last_name, email, password, provider, provider_id, biometria) ' +
+                        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id, :biometria)';
 
       Query.ParamByName('first_name').AsString := FirstName;
       Query.ParamByName('last_name').AsString := LastName;
@@ -222,6 +217,7 @@ begin
       Query.ParamByName('password').AsString := LocalPassword;
       Query.ParamByName('provider').AsString := Provider;
       Query.ParamByName('provider_id').AsString := ProviderID;
+      Query.ParamByName('biometria').AsBoolean := True;
 
       Query.ExecSQL;
 
@@ -240,6 +236,8 @@ begin
 
   Result := JsonResponse;
 end;
+
+
 
 function Tconfigdm.SalvarCodigoAutenticacao(const UserID: integer; Codigo,
   IP: string): TJSONObject;
