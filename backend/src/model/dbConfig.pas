@@ -208,16 +208,17 @@ begin
       else
         LocalPassword := SaltPassWord(Password);
 
-      Query.SQL.Text := 'INSERT INTO users (first_name, last_name, email, password, provider, provider_id, biometria) ' +
-                        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id, :biometria)';
+      Query.SQL.Text :=
+        'INSERT INTO users (first_name, last_name, email, password, provider, provider_id, biometria_ativa) ' +
+        'VALUES (:first_name, :last_name, :email, :password, :provider, :provider_id, :biometria_ativa)';
 
       Query.ParamByName('first_name').AsString := FirstName;
       Query.ParamByName('last_name').AsString := LastName;
-      Query.ParamByName('email').AsString := Email;
+      Query.ParamByName('email').AsString := LowerCase(Trim(Email));
       Query.ParamByName('password').AsString := LocalPassword;
       Query.ParamByName('provider').AsString := Provider;
       Query.ParamByName('provider_id').AsString := ProviderID;
-      Query.ParamByName('biometria').AsBoolean := True;
+      Query.ParamByName('biometria_ativa').AsBoolean := False;
 
       Query.ExecSQL;
 
@@ -304,7 +305,7 @@ begin
       end;
 
       Query.SQL.Text := 'SELECT id, email FROM users ' +
-                        'WHERE email = :email AND password = :password';
+                        'WHERE LOWER(email) = LOWER(:email) AND password = :password';
       Query.ParamByName('email').AsString := Email;
       Query.ParamByName('password').AsString := SaltPassWord(Senha);
     end
@@ -357,6 +358,9 @@ begin
       JsonResponse.AddPair('status', 'success');
       JsonResponse.AddPair('id', Query.FieldByName('id').AsString);
       JsonResponse.AddPair('email', Query.FieldByName('email').AsString);
+
+      // Aqui você pode adicionar biometria ou 2FA se quiser
+      JsonResponse.AddPair('requires_2fa', TJSONBool.Create(True)); // exemplo
     end
     else
     begin
@@ -379,6 +383,7 @@ begin
   Result := JsonResponse;
 end;
 
+
 function TConfigDM.VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
 var
   Query: TFDQuery;
@@ -393,13 +398,22 @@ begin
 
   try
     Query.Connection := conn;
-    Query.SQL.Text := 'SELECT codigo FROM autenticacao_codigos WHERE user_id = :user_id LIMIT 1';
+
+    Query.SQL.Text :=
+      'SELECT c.codigo, u.biometria_ativa ' +
+      'FROM autenticacao_codigos c ' +
+      'JOIN users u ON u.id = c.user_id ' +
+      'WHERE c.user_id = :user_id ' +
+      'LIMIT 1';
+
     Query.ParamByName('user_id').AsString := UserID;
     Query.Open;
 
     if not Query.IsEmpty then
     begin
       CodigoSalvo := Query.FieldByName('codigo').AsString;
+      JsonResponse.AddPair('biometria_ativa',
+        TJSONBool.Create(Query.FieldByName('biometria_ativa').AsBoolean));
 
       if CodigoEnviado = '' then
       begin
@@ -408,7 +422,7 @@ begin
       end
       else
       begin
-        if CodigoSalvo = CodigoEnviado then
+        if Trim(CodigoSalvo) = Trim(CodigoEnviado) then
         begin
           JsonResponse.AddPair('status', 'success');
           JsonResponse.AddPair('mensagem', 'Código válido.');
@@ -423,6 +437,7 @@ begin
     else
     begin
       JsonResponse.AddPair('codigo_existe', TJSONBool.Create(False));
+      JsonResponse.AddPair('biometria_ativa', TJSONBool.Create(False));
     end;
   except
     on E: Exception do
@@ -435,6 +450,7 @@ begin
   Query.Free;
   Result := JsonResponse;
 end;
+
 
 
 

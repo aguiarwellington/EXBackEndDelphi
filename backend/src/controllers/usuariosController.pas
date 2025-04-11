@@ -261,13 +261,47 @@ begin
   end;
 end;
 
+procedure AtivarBiometria(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  Dm: TConfigDM;
+  UserID: string;
+  Query: TFDQuery;
+begin
+  UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
+
+  if UserID = '' then
+  begin
+    Res.Status(400).Send('ID do usuário não informado');
+    Exit;
+  end;
+
+  Dm := TConfigDM.Create(nil);
+  Query := TFDQuery.Create(nil);
+  try
+    Query.Connection := Dm.conn;
+    Query.SQL.Text := 'UPDATE users SET biometria_ativa = 1 WHERE id = :id';
+    Query.ParamByName('id').AsString := UserID;
+    Query.ExecSQL;
+
+    Res.Send('Biometria ativada com sucesso').Status(200);
+  except
+    on E: Exception do
+      Res.Status(500).Send('Erro ao ativar biometria: ' + E.Message);
+  end;
+
+  Query.Free;
+  Dm.Free;
+end;
 
 procedure RegistrarRotas;
 begin
   THorse.Get('/usuarios/login', Login);
   THorse.Post('/usuarios/login', Login);
   THorse.Post('/usuarios/register', RegisterUser);
+
   THorse.Post('/usuarios/validar-sessao', ValidarSessao);
+  THorse.Post('/usuarios/ativar-biometria', AtivarBiometria);
+
 
   THorse.Post('/usuarios/enviarCodigo', EnviarCodigoSMS);
   THorse.Post('/usuarios/verificar-codigo-existente', VerificarCodigoExistente);
