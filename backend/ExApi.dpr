@@ -26,21 +26,22 @@ begin
   try
     THorse.Use(Jhonson());
 
-   HorseCORS
-     .AllowedOrigin('*')
-     .AllowedCredentials(true)
-     .AllowedHeaders('*')
-     .AllowedMethods('*')
-     .ExposedHeaders('*');
+    HorseCORS
+      .AllowedOrigin('*')
+      .AllowedCredentials(true)
+      .AllowedHeaders('*')
+      .AllowedMethods('*')
+      .ExposedHeaders('*');
 
-    THorse.Use(CORS);
+    THorse
+      .use(cors);
 
     usuariosController.RegistrarRotas;
     RegistrarMeiRotas;
 
-    //Writeln('Servidor iniciado na porta 3000. Acesse: http://192.168.1.101:3000');
-
-    THorse.Listen(3000);
+    Writeln('Servidor iniciado na porta 3000. Acesse: http://localhost:3000');
+    THorse
+      .Listen(3000);
 
     Readln;
 
