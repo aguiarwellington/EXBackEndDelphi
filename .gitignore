@@ -1,0 +1,27 @@
+# Ignorar pastas de build do Delphi
+*/Android64/Debug/
+*/Android64/Release/
+*.dcu
+*.~*
+*.local
+*.identcache
+__history/
+*.hpp
+*.exe
+*.dll
+*.dsk
+*.map
+*.log
+*.tds
+*.apk
+*.aab
+*.so
+*.o
+*.obj
+*.class
+*.bak
+*.drc
+*.tmp
+*.dproj.local
+*.tvsconfig
+*.stat
