@@ -115,30 +115,32 @@ begin
     Provider := body.GetValue<string>('provider', 'normal');
     ProviderID := body.GetValue<string>('provider_id', '');
 
-    Dm := Tconfigdm.Create(nil);
 
-    if Provider <> 'normal' then
-    begin
-      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, '', Provider, ProviderID);
-    end
-    else
-    begin
-      JsonResponse := Dm.InsertUser(FirstName, LastName, Email, Password, 'normal', '');
+    Dm := TConfigDM.Create(nil);
+    try
+      if Provider <> 'normal' then
+      begin
+        JsonResponse := Dm.InsertUser(FirstName, LastName, Email, '', Provider, ProviderID);
+      end
+      else
+      begin
+         JsonResponse := Dm.InsertUser(FirstName, LastName, Email, Password, 'normal', '');
+      end;
+
+      if JsonResponse.GetValue<string>('status') = 'error' then
+        Res.Send(JsonResponse).Status(400)
+      else
+        Res.Send(JsonResponse).Status(201);
+
+    finally
+      Dm.Free;
     end;
-
-    if JsonResponse = nil then
-      Res.Status(THTTPStatus.BadRequest).Send('Erro ao registrar usuário')
-    else
-      Res.Send<TJSONObject>(JsonResponse).Status(201);
-
-    FreeAndNil(Dm);
 
   except
-    on E: Exception do
-    begin
-      Res.Status(THTTPStatus.InternalServerError).Send('Erro ao processar registro: ' + E.Message);
-    end;
+    on Ex: Exception do
+      Res.Send('Ocorreu um erro: ' + Ex.Message).Status(500);
   end;
+
 end;
 
 procedure EnviarCodigoSMS(Req: THorseRequest; Res: THorseResponse; Next: TProc);

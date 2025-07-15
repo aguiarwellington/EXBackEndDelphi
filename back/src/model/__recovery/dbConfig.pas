@@ -124,7 +124,7 @@ begin
   try
     Query.Connection := conn;
 
-    // Verificar se j· existe registro para o usu·rio
+    // Verificar se j√° existe registro para o usu√°rio
     Query.SQL.Text := 'SELECT COUNT(*) FROM meicadastro WHERE id_usuario = :id_usuario';
     Query.ParamByName('id_usuario').AsInteger := UsuarioID;
     Query.Open;
@@ -153,7 +153,7 @@ begin
         ':endereco_cep, :email, :telefone, :foto)';
     end;
 
-    // Par‚metros comuns
+    // Par√¢metros comuns
     Query.ParamByName('id_usuario').AsInteger := UsuarioID;
     Query.ParamByName('cnpj').AsString := CNPJ;
     Query.ParamByName('razao_social').AsString := RazaoSocial;
@@ -172,7 +172,7 @@ begin
     with Query.ParamByName('foto') do
     begin
       DataType := ftMemo;
-      Size := Length(Foto); // ou um valor fixo como 200000
+      Size := Length(Foto);
       AsString := Foto;
     end;
 
@@ -204,11 +204,11 @@ begin
     try
       Query.Connection := Conn;
 
-      // ?? Verifica se o e-mail j· est· cadastrado
+      // ?? Verifica se o e-mail j√° est√° cadastrado
       if EmailExists(Email) then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'E-mail j· cadastrado.');
+        JsonResponse.AddPair('message', 'E-mail j√° cadastrado.');
         Exit(JsonResponse);
       end;
 
@@ -232,12 +232,12 @@ begin
       Query.ExecSQL;
 
       JsonResponse.AddPair('status', 'success');
-      JsonResponse.AddPair('message', 'Usu·rio registrado com sucesso.');
+      JsonResponse.AddPair('message', 'Usu√°rio registrado com sucesso.');
     except
       on E: Exception do
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Erro ao registrar usu·rio: ' + E.Message);
+        JsonResponse.AddPair('message', 'Erro ao registrar usu√°rio: ' + E.Message);
       end;
     end;
   finally
@@ -290,12 +290,12 @@ begin
       Query.ExecSQL;
 
       JsonResponse.AddPair('status', 'success');
-      JsonResponse.AddPair('message', 'CÛdigo de autenticaÁ„o salvo com sucesso.');
+      JsonResponse.AddPair('message', 'C√≥digo de autentica√ß√£o salvo com sucesso.');
     except
       on E: Exception do
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Erro ao salvar cÛdigo: ' + E.Message);
+        JsonResponse.AddPair('message', 'Erro ao salvar c√≥digo: ' + E.Message);
       end;
     end;
   finally
@@ -326,7 +326,7 @@ begin
       if (Email = '') or (Senha = '') then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Email e Senha s„o obrigatÛrios para login normal.');
+        JsonResponse.AddPair('message', 'Email e Senha s√£o obrigat√≥rios para login normal.');
         Exit(JsonResponse);
       end;
 
@@ -340,7 +340,7 @@ begin
       if ProviderID = '' then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'ProviderID È obrigatÛrio para login com Google.');
+        JsonResponse.AddPair('message', 'ProviderID √© obrigat√≥rio para login com Google.');
         Exit(JsonResponse);
       end;
 
@@ -353,7 +353,7 @@ begin
         if GoogleResponse.Contains('error') then
         begin
           JsonResponse.AddPair('status', 'error');
-          JsonResponse.AddPair('message', 'Token do Google inv·lido.');
+          JsonResponse.AddPair('message', 'Token do Google inv√°lido.');
           Exit(JsonResponse);
         end;
       except
@@ -373,7 +373,7 @@ begin
     else
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Provider inv·lido.');
+      JsonResponse.AddPair('message', 'Provider inv√°lido.');
       Exit(JsonResponse);
     end;
 
@@ -385,13 +385,13 @@ begin
       JsonResponse.AddPair('id', Query.FieldByName('id').AsString);
       JsonResponse.AddPair('email', Query.FieldByName('email').AsString);
 
-      // Aqui vocÍ pode adicionar biometria ou 2FA se quiser
+      // Aqui voc√™ pode adicionar biometria ou 2FA se quiser
       JsonResponse.AddPair('requires_2fa', TJSONBool.Create(True)); // exemplo
     end
     else
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Usu·rio n„o encontrado ou credenciais inv·lidas.');
+      JsonResponse.AddPair('message', 'Usu√°rio n√£o encontrado ou credenciais inv√°lidas.');
     end;
 
   except
@@ -451,12 +451,12 @@ begin
         if Trim(CodigoSalvo) = Trim(CodigoEnviado) then
         begin
           JsonResponse.AddPair('status', 'success');
-          JsonResponse.AddPair('mensagem', 'CÛdigo v·lido.');
+          JsonResponse.AddPair('mensagem', 'C√≥digo v√°lido.');
         end
         else
         begin
           JsonResponse.AddPair('status', 'error');
-          JsonResponse.AddPair('mensagem', 'CÛdigo inv·lido.');
+          JsonResponse.AddPair('mensagem', 'C√≥digo inv√°lido.');
         end;
       end;
     end
@@ -469,7 +469,7 @@ begin
     on E: Exception do
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('mensagem', 'Erro ao verificar cÛdigo: ' + E.Message);
+      JsonResponse.AddPair('mensagem', 'Erro ao verificar c√≥digo: ' + E.Message);
     end;
   end;
 
