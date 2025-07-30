@@ -85,12 +85,20 @@ begin
     end;
 
   except
+    on  E: Exception do
+    begin
+      if Pos('Duplicate entry', E.Message) > 0 then
+        Res.Status(409).Send('CNPJ já cadastrado.')
+      else
+        Res.Status(500).Send('Erro MySQL: ' + E.Message);
+    end;
     on E: Exception do
     begin
-      Res.Status(THTTPStatus.InternalServerError).Send('Erro ao cadastrar MEI: ' + E.Message);
+      Res.Status(500).Send('Erro ao cadastrar MEI: ' + E.Message);
     end;
   end;
 end;
+
 
 
 procedure BuscarMei(Req: THorseRequest; Res: THorseResponse; Next: TProc);

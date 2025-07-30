@@ -22,7 +22,7 @@ procedure Login(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
   Dm: TConfigDM;
   Body, JsonResponse: TJSONObject;
-  BodyStr, Provider, ProviderID, Code, ID, Email, Senha: string;
+  BodyStr, Provider, ProviderID, Code, Email, Senha: string;
 begin
   try
     BodyStr := Req.Body;
@@ -49,7 +49,6 @@ begin
       Exit;
     end;
 
-    ID := Body.GetValue<string>('id', '');
     Email := Body.GetValue<string>('email', '');
     Senha := Body.GetValue<string>('password', '');
     Provider := Body.GetValue<string>('provider', 'normal');
@@ -58,7 +57,7 @@ begin
 
     Dm := TConfigDM.Create(nil);
     try
-      JsonResponse := Dm.UsuarioLogin(ID, Email, Senha, Provider, ProviderID);
+      JsonResponse := Dm.UsuarioLogin(Email, Senha, Provider, ProviderID);
 
       if JsonResponse.GetValue<string>('status') = 'error' then
         Res.Send(JsonResponse).Status(400)
@@ -74,6 +73,7 @@ begin
       Res.Send('Ocorreu um erro: ' + Ex.Message).Status(500);
   end;
 end;
+
 
 procedure RegisterUser(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
@@ -214,17 +214,15 @@ end;
 
 procedure VerificarCodigoExistente(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 var
-  UserID, CodigoEnviado: string;
+  UserID: string;
   JsonResponse: TJSONObject;
   Dm: TConfigDM;
 begin
   UserID := Req.Body<TJSONObject>.GetValue<string>('user_id', '');
 
-  Req.Body<TJSONObject>.TryGetValue<string>('code', CodigoEnviado);
-
   Dm := TConfigDM.Create(nil);
   try
-    JsonResponse := Dm.VerificarCodigoExistente(UserID, CodigoEnviado);
+    JsonResponse := Dm.VerificarCodigoExistente(UserID);
   finally
     Dm.Free;
   end;
@@ -360,7 +358,9 @@ end;
 procedure RegistrarRotas;
 begin
   THorse.Get('/usuarios/login', Login);
+
   THorse.Post('/usuarios/login', Login);
+
   THorse.Post('/usuarios/register', RegisterUser);
 
   THorse.Post('/usuarios/validar-sessao', ValidarSessao);
@@ -368,7 +368,6 @@ begin
   THorse.Post('/usuarios/ativar-biometria', AtivarBiometria);
   THorse.Post('/usuarios/status-biometria', ObterStatusBiometria);
   THorse.Post('/usuarios/biometria-logada', BiometriaLogada);
-
 
   THorse.Post('/usuarios/enviarCodigo', EnviarCodigoSMS);
   THorse.Post('/usuarios/verificar-codigo-existente', VerificarCodigoExistente);

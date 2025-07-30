@@ -1,4 +1,4 @@
-unit dbConfig;
+Ôªøunit dbConfig;
 
 interface
 
@@ -46,9 +46,9 @@ type
   public
    function EmailExists(const Email: string): Boolean;
     function InsertUser(const FirstName, LastName, Email, Password, Provider, ProviderID: string): TJSONObject;
-    function UsuarioLogin(const id, Email, Senha, Provider, ProviderID: string): TJSONObject;
+    function UsuarioLogin(const Email, Senha, Provider, ProviderID: string): TJSONObject;
     function SalvarCodigoAutenticacao(const UserID : integer; Codigo, IP: string ) : TJSONObject;
-    function VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
+    function VerificarCodigoExistente(const UserID: string): TJSONObject;
 
     //meis
   function InsertMei(const UsuarioID: Integer; const CNPJ, RazaoSocial, NomeFantasia,
@@ -124,7 +124,7 @@ begin
   try
     Query.Connection := conn;
 
-    // Verificar se j· existe registro para o usu·rio
+    // Verificar se j√° existe registro para o usu√°rio
     Query.SQL.Text := 'SELECT COUNT(*) FROM meicadastro WHERE id_usuario = :id_usuario';
     Query.ParamByName('id_usuario').AsInteger := UsuarioID;
     Query.Open;
@@ -153,7 +153,7 @@ begin
         ':endereco_cep, :email, :telefone, :foto)';
     end;
 
-    // Par‚metros comuns
+    // Par√¢metros comuns
     Query.ParamByName('id_usuario').AsInteger := UsuarioID;
     Query.ParamByName('cnpj').AsString := CNPJ;
     Query.ParamByName('razao_social').AsString := RazaoSocial;
@@ -168,11 +168,11 @@ begin
     Query.ParamByName('email').AsString := Email;
     Query.ParamByName('telefone').AsString := Telefone;
 
-    // Definindo o tipo e tamanho do campo foto corretamente
+    // Campo foto
     with Query.ParamByName('foto') do
     begin
       DataType := ftMemo;
-      Size := Length(Foto); // ou um valor fixo como 200000
+      Size := Length(Foto);
       AsString := Foto;
     end;
 
@@ -180,14 +180,11 @@ begin
 
     JsonResponse.AddPair('status', 'success');
     JsonResponse.AddPair('message', IfThen(JaExiste, 'MEI atualizado com sucesso.', 'MEI cadastrado com sucesso.'));
-  except
-    on E: Exception do
-    begin
-      JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Erro ao salvar MEI: ' + E.Message);
-    end;
+
+  finally
+    Query.Free;
   end;
-  Query.Free;
+
   Result := JsonResponse;
 end;
 
@@ -204,11 +201,11 @@ begin
     try
       Query.Connection := Conn;
 
-      // ?? Verifica se o e-mail j· est· cadastrado
+      // ?? Verifica se o e-mail j√° est√° cadastrado
       if EmailExists(Email) then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'E-mail j· cadastrado.');
+        JsonResponse.AddPair('message', 'E-mail j√° cadastrado.');
         Exit(JsonResponse);
       end;
 
@@ -232,12 +229,12 @@ begin
       Query.ExecSQL;
 
       JsonResponse.AddPair('status', 'success');
-      JsonResponse.AddPair('message', 'Usu·rio registrado com sucesso.');
+      JsonResponse.AddPair('message', 'Usu√°rio registrado com sucesso.');
     except
       on E: Exception do
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Erro ao registrar usu·rio: ' + E.Message);
+        JsonResponse.AddPair('message', 'Erro ao registrar usu√°rio: ' + E.Message);
       end;
     end;
   finally
@@ -246,7 +243,6 @@ begin
 
   Result := JsonResponse;
 end;
-
 
 function TConfigDM.EmailExists(const Email: string): Boolean;
 var
@@ -264,7 +260,6 @@ begin
     Query.Free;
   end;
 end;
-
 
 function Tconfigdm.SalvarCodigoAutenticacao(const UserID: integer; Codigo,
   IP: string): TJSONObject;
@@ -290,12 +285,12 @@ begin
       Query.ExecSQL;
 
       JsonResponse.AddPair('status', 'success');
-      JsonResponse.AddPair('message', 'CÛdigo de autenticaÁ„o salvo com sucesso.');
+      JsonResponse.AddPair('message', 'C√≥digo de autentica√ß√£o salvo com sucesso.');
     except
       on E: Exception do
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Erro ao salvar cÛdigo: ' + E.Message);
+        JsonResponse.AddPair('message', 'Erro ao salvar c√≥digo: ' + E.Message);
       end;
     end;
   finally
@@ -305,16 +300,20 @@ begin
   Result := JsonResponse;
 end;
 
-function TConfigDM.UsuarioLogin(const ID, Email, Senha, Provider, ProviderID: string): TJSONObject;
+function TConfigDM.UsuarioLogin(const Email, Senha, Provider, ProviderID: string): TJSONObject;
 var
-  Query: TFDQuery;
+  Query, CheckQuery, UpdateQuery: TFDQuery;
   JsonResponse: TJSONObject;
   HttpClient: TIdHTTP;
   GoogleTokenInfo: TStringList;
   GoogleResponse: string;
+  CodigoValido: Boolean;
+  CodigoData: TDateTime;
 begin
   JsonResponse := TJSONObject.Create;
   Query := TFDQuery.Create(nil);
+  CheckQuery := TFDQuery.Create(nil);
+  UpdateQuery := TFDQuery.Create(nil);
   HttpClient := TIdHTTP.Create(nil);
   GoogleTokenInfo := TStringList.Create;
 
@@ -326,12 +325,13 @@ begin
       if (Email = '') or (Senha = '') then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'Email e Senha s„o obrigatÛrios para login normal.');
+        JsonResponse.AddPair('message', 'Email e Senha s√£o obrigat√≥rios para login normal.');
         Exit(JsonResponse);
       end;
 
-      Query.SQL.Text := 'SELECT id, email FROM users ' +
-                        'WHERE LOWER(email) = LOWER(:email) AND password = :password';
+      Query.SQL.Text :=
+        'SELECT id, email FROM users ' +
+        'WHERE LOWER(email) = LOWER(:email) AND password = :password';
       Query.ParamByName('email').AsString := Email;
       Query.ParamByName('password').AsString := SaltPassWord(Senha);
     end
@@ -340,7 +340,7 @@ begin
       if ProviderID = '' then
       begin
         JsonResponse.AddPair('status', 'error');
-        JsonResponse.AddPair('message', 'ProviderID È obrigatÛrio para login com Google.');
+        JsonResponse.AddPair('message', 'ProviderID √© obrigat√≥rio para login com Google.');
         Exit(JsonResponse);
       end;
 
@@ -353,7 +353,7 @@ begin
         if GoogleResponse.Contains('error') then
         begin
           JsonResponse.AddPair('status', 'error');
-          JsonResponse.AddPair('message', 'Token do Google inv·lido.');
+          JsonResponse.AddPair('message', 'Token do Google inv√°lido.');
           Exit(JsonResponse);
         end;
       except
@@ -365,15 +365,16 @@ begin
         end;
       end;
 
-      Query.SQL.Text := 'SELECT id, email FROM users ' +
-                        'WHERE provider = :provider AND provider_id = :providerID';
+      Query.SQL.Text :=
+        'SELECT id, email FROM users ' +
+        'WHERE provider = :provider AND provider_id = :providerID';
       Query.ParamByName('provider').AsString := Provider;
       Query.ParamByName('providerID').AsString := ProviderID;
     end
     else
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Provider inv·lido.');
+      JsonResponse.AddPair('message', 'Provider inv√°lido.');
       Exit(JsonResponse);
     end;
 
@@ -381,17 +382,47 @@ begin
 
     if not Query.IsEmpty then
     begin
+      CodigoValido := False;
+
+      CheckQuery.Connection := conn;
+      CheckQuery.SQL.Text :=
+        'SELECT codigo_validado, codigo_validado_em FROM users WHERE id = :id';
+      CheckQuery.ParamByName('id').AsString := Query.FieldByName('id').AsString;
+      CheckQuery.Open;
+
+      if CheckQuery.FieldByName('codigo_validado').AsBoolean then
+      begin
+        CodigoData := CheckQuery.FieldByName('codigo_validado_em').AsDateTime;
+        if (Trunc(Now) - Trunc(CodigoData) <= 15) then
+          CodigoValido := True
+        else
+        begin
+          UpdateQuery.Connection := conn;
+          UpdateQuery.SQL.Text := 'UPDATE users SET codigo_validado = 0 WHERE id = :id';
+          UpdateQuery.ParamByName('id').AsString := Query.FieldByName('id').AsString;
+          UpdateQuery.ExecSQL;
+        end;
+      end;
+
+      if not CodigoValido then
+      begin
+        JsonResponse.AddPair('status', 'pending_code');
+        JsonResponse.AddPair('message', 'C√≥digo expirado ou n√£o validado.');
+        JsonResponse.AddPair('requires_2fa', TJSONBool.Create(True));
+        JsonResponse.AddPair('user_id', Query.FieldByName('id').AsString);
+        Exit(JsonResponse);
+      end;
+
       JsonResponse.AddPair('status', 'success');
       JsonResponse.AddPair('id', Query.FieldByName('id').AsString);
+      JsonResponse.AddPair('user_id', Query.FieldByName('id').AsString);
       JsonResponse.AddPair('email', Query.FieldByName('email').AsString);
-
-      // Aqui vocÍ pode adicionar biometria ou 2FA se quiser
-      JsonResponse.AddPair('requires_2fa', TJSONBool.Create(True)); // exemplo
+      JsonResponse.AddPair('requires_2fa', TJSONBool.Create(False));
     end
     else
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('message', 'Usu·rio n„o encontrado ou credenciais inv·lidas.');
+      JsonResponse.AddPair('message', 'Usu√°rio n√£o encontrado ou credenciais inv√°lidas.');
     end;
 
   except
@@ -403,18 +434,20 @@ begin
   end;
 
   Query.Free;
+  CheckQuery.Free;
+  UpdateQuery.Free;
   HttpClient.Free;
   GoogleTokenInfo.Free;
 
   Result := JsonResponse;
 end;
 
-
-function TConfigDM.VerificarCodigoExistente(const UserID, CodigoEnviado: string): TJSONObject;
+function TConfigDM.VerificarCodigoExistente(const UserID: string): TJSONObject;
 var
   Query: TFDQuery;
   JsonResponse: TJSONObject;
-  CodigoSalvo: string;
+  BiometriaAtiva: Boolean;
+  CodigoValidado: Boolean;
 begin
   JsonResponse := TJSONObject.Create;
   Query := TFDQuery.Create(nil);
@@ -424,63 +457,34 @@ begin
 
   try
     Query.Connection := conn;
-
-    Query.SQL.Text :=
-      'SELECT c.codigo, u.biometria_ativa ' +
-      'FROM autenticacao_codigos c ' +
-      'JOIN users u ON u.id = c.user_id ' +
-      'WHERE c.user_id = :user_id ' +
-      'LIMIT 1';
-
-    Query.ParamByName('user_id').AsString := UserID;
+    Query.SQL.Text := 'SELECT biometria_ativa, codigo_validado FROM users WHERE id = :id';
+    Query.ParamByName('id').AsString := UserID;
     Query.Open;
 
     if not Query.IsEmpty then
     begin
-      CodigoSalvo := Query.FieldByName('codigo').AsString;
-      JsonResponse.AddPair('biometria_ativa',
-        TJSONBool.Create(Query.FieldByName('biometria_ativa').AsBoolean));
+      BiometriaAtiva := Query.FieldByName('biometria_ativa').AsBoolean;
+      CodigoValidado := Query.FieldByName('codigo_validado').AsBoolean;
 
-      if CodigoEnviado = '' then
-      begin
-        JsonResponse.AddPair('codigo_existe', TJSONBool.Create(True));
-        JsonResponse.AddPair('codigo_salvo', CodigoSalvo);
-      end
-      else
-      begin
-        if Trim(CodigoSalvo) = Trim(CodigoEnviado) then
-        begin
-          JsonResponse.AddPair('status', 'success');
-          JsonResponse.AddPair('mensagem', 'CÛdigo v·lido.');
-        end
-        else
-        begin
-          JsonResponse.AddPair('status', 'error');
-          JsonResponse.AddPair('mensagem', 'CÛdigo inv·lido.');
-        end;
-      end;
+      JsonResponse.AddPair('biometria_ativa', TJSONBool.Create(BiometriaAtiva));
+      JsonResponse.AddPair('codigo_validado', TJSONBool.Create(CodigoValidado));
     end
     else
     begin
-      JsonResponse.AddPair('codigo_existe', TJSONBool.Create(False));
       JsonResponse.AddPair('biometria_ativa', TJSONBool.Create(False));
+      JsonResponse.AddPair('codigo_validado', TJSONBool.Create(False));
     end;
   except
     on E: Exception do
     begin
       JsonResponse.AddPair('status', 'error');
-      JsonResponse.AddPair('mensagem', 'Erro ao verificar cÛdigo: ' + E.Message);
+      JsonResponse.AddPair('mensagem', 'Erro ao verificar status 2FA: ' + E.Message);
     end;
   end;
 
   Query.Free;
   Result := JsonResponse;
 end;
-
-
-
-
-
 
 end.
 
